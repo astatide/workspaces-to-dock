@@ -18,6 +18,7 @@ const Me = imports.misc.extensionUtils.getCurrentExtension();
 const Convenience = Me.imports.convenience;
 const Intellihide = Me.imports.intellihide;
 const DockedWorkspaces = Me.imports.dockedWorkspaces;
+const { ThumbnailsBox } = imports.ui.workspaceThumbnail;
 
 var intellihide = null;
 var dock = null;
@@ -97,6 +98,9 @@ function enable() {
     dock = new DockedWorkspaces.DockedWorkspaces();
     intellihide = new Intellihide.Intellihide(dock);
     settings = Convenience.getSettings('org.gnome.shell.extensions.workspaces-to-dock');
+    ThumbnailsBox.prototype._updateSwitcherVisibility = function () {
+        this.hide();
+    };
     bindSettingsChanges();
 }
 

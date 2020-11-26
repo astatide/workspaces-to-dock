@@ -9,7 +9,7 @@
  * ========================================================================================================
  */
 
-const _DEBUG_ = false;
+const _DEBUG_ = true;
 
 const GLib = imports.gi.GLib;
 const Gio = imports.gi.Gio;
@@ -22,6 +22,7 @@ const Signals = imports.signals;
 const St = imports.gi.St;
 const Meta = imports.gi.Meta;
 const Params = imports.misc.params;
+const { ThumbnailsBox } = imports.ui.workspaceThumbnail;
 
 const Main = imports.ui.main;
 const WorkspacesView = imports.ui.workspacesView;
@@ -707,7 +708,8 @@ var DockedWorkspaces = class WorkspacesToDock_DockedWorkspaces {
         }
 
         // Hide normal workspaces thumbnailsBox
-        Main.overview._overview._controls._thumbnailsSlider.opacity = 0;
+        //Main.overview._overview._controls._thumbnailsSlider.opacity = 0;
+        Main.overview._overview._controls._thumbnailsSlider.hide();
 
         // Override WorkspaceSwitcherPopup _show function to prevent popup from showing when disabled
         GSFunctions['WorkspaceSwitcherPopup_show'] = WorkspaceSwitcherPopup.WorkspaceSwitcherPopup.prototype._show;
@@ -759,7 +761,6 @@ var DockedWorkspaces = class WorkspacesToDock_DockedWorkspaces {
             if (_DEBUG_) global.log("WORKSPACESDISPLAY - _UPDATE ACTUALGEOMETRY");
             if (!this._workspacesViews.length)
                 return;
-
             let [x, y] = this.get_transformed_position();
             let allocation = this.allocation;
             let width = allocation.x2 - allocation.x1;
@@ -1006,9 +1007,27 @@ var DockedWorkspaces = class WorkspacesToDock_DockedWorkspaces {
                 geometry.height -= controlsHeight;
                 if (_DEBUG_) global.log("WORKSPACESDISPLAY - FINAL GEOMETRY.X = "+geometry.x+" Y = "+geometry.y+" W = "+geometry.width+" H = "+geometry.height);
 
-                const { gx, gy, gwidth, gheight } = geometry;
-                this._workspacesViews[i].set({ gx, gy, gwidth, gheight });
+                const { x: gx, y: gy, width: gwidth, height: gheight } = geometry;
+                var seen = [];
+                var workspaces = this._workspacesViews[i]._workspaces;
+                for (let j = 0; i < workspaces.length; i++) {
+                     workspaces[j].set( { x: geometry.x, y: geometry.y, width: geometry.width, height: geometry.height } );
+                }
+                // WORKS
+                this._actualGeometry = { x: geometry.x, y: geometry.y, width: geometry.width, height: geometry.height };
+                if (_DEBUG_) global.log(`WORKSPACESDISPLAY - this._actualGeometry - ${JSON.stringify(this._actualGeometry)}`);
             }
+            if (this._syncActualGeometryLater > 0)
+                return;
+
+            this._syncActualGeometryLater =
+                Meta.later_add(Meta.LaterType.BEFORE_REDRAW, () => {
+                    if (_DEBUG_) global.log("WORKSPACESDISPLAY - SYNCING WORKSPACES");
+                    this._syncWorkspacesActualGeometry();
+
+                    this._syncActualGeometryLater = 0;
+                    return GLib.SOURCE_REMOVE;
+                });
         };
 
         this._overrideComplete = true;
@@ -1034,7 +1053,8 @@ var DockedWorkspaces = class WorkspacesToDock_DockedWorkspaces {
         }
 
         // Show normal workspaces thumbnailsBox
-        Main.overview._overview._controls._thumbnailsSlider.opacity = 255;
+        //Main.overview._overview._controls._thumbnailsSlider.opacity = 255;
+        Main.overview._overview._controls._thumbnailsSlider.show();
 
         // Restore normal WorkspaceSwitcherPopup_show function
         WorkspaceSwitcherPopup.WorkspaceSwitcherPopup.prototype._show = GSFunctions['WorkspaceSwitcherPopup_show'];
